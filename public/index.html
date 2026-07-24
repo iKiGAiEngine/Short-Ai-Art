@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080a10" />
+  <title>Short AI Art — Production OS</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">INTERNAL PRODUCTION OS</div>
+        <h1>Short AI Art</h1>
+      </div>
+      <div class="status-wrap">
+        <span id="provider" class="pill">Higgsfield: checking…</span>
+        <span id="saveStatus" class="pill subtle">Ready</span>
+      </div>
+    </header>
+
+    <section class="hero panel">
+      <div class="hero-copy">
+        <div class="eyebrow">CONTENT FACTORY</div>
+        <h2>Idea → 6 visual directions → storyboard → render plan</h2>
+        <p>Keep one premium cinematic look. Change the character, world, action and story. Approve cheap stills before spending video credits.</p>
+      </div>
+      <div class="hero-actions">
+        <button id="trendDog" class="primary">✨ Surprise me: dog</button>
+        <button id="trendPerson">✨ Surprise me: person</button>
+      </div>
+    </section>
+
+    <div class="layout">
+      <main>
+        <section class="panel">
+          <div class="section-head">
+            <div><div class="eyebrow">CREATE</div><h3>New short</h3></div>
+            <span>Default: 30 sec · 9:16 · 6 scenes</span>
+          </div>
+          <div class="grid two">
+            <label>Describe the character
+              <textarea id="character" placeholder="Fluffy golden retriever, red bandana, expressive face…"></textarea>
+            </label>
+            <label>Describe the setting
+              <textarea id="setting" placeholder="Extravagant tropical coast, enormous waves, lush cliffs…"></textarea>
+            </label>
+            <label>Mood / direction
+              <textarea id="mood" placeholder="Joyful, awe-inspiring, premium, fast-moving…"></textarea>
+            </label>
+            <label>Style override <span class="optional">optional</span>
+              <textarea id="style" placeholder="Leave blank to use the locked Short AI Art cinematic style."></textarea>
+            </label>
+          </div>
+          <div class="actions"><button id="custom" class="primary">Generate 6 Strategic Concepts</button></div>
+        </section>
+
+        <section id="conceptSection" class="panel hidden">
+          <div class="section-head">
+            <div><div class="eyebrow">STEP 1</div><h3>Pick the strongest visual direction</h3></div>
+            <span id="recommendation"></span>
+          </div>
+          <div id="concepts" class="cards"></div>
+        </section>
+
+        <section id="selectedSection" class="panel hidden">
+          <div class="section-head">
+            <div><div class="eyebrow">STEP 2</div><h3>Refine and lock</h3></div>
+            <span>Edit anything before creating scenes</span>
+          </div>
+          <label>Master prompt
+            <textarea id="masterPrompt" class="big"></textarea>
+          </label>
+          <div class="quick-edits">
+            <button data-edit="more-vibrant">More vibrant</button>
+            <button data-edit="more-scenic">Bigger world</button>
+            <button data-edit="more-emotional">More emotional</button>
+            <button data-edit="more-motion">More motion</button>
+          </div>
+          <div class="actions"><button id="lock" class="primary">Lock & Build 6-Scene Storyboard</button></div>
+        </section>
+
+        <section id="storySection" class="panel hidden">
+          <div class="section-head">
+            <div><div class="eyebrow">STEP 3</div><h3>30-second storyboard</h3></div>
+            <span>Edit scene prompts before generation</span>
+          </div>
+          <div id="story" class="story"></div>
+          <div class="actions"><button id="renderPlan" class="primary">Build Approval-Gated Render Plan</button></div>
+        </section>
+
+        <section id="queueSection" class="panel hidden">
+          <div class="section-head">
+            <div><div class="eyebrow">STEP 4</div><h3>Render plan</h3></div>
+            <span>No paid generation is triggered from this button</span>
+          </div>
+          <div id="renderStages" class="stages"></div>
+          <div id="queueList" class="story"></div>
+        </section>
+      </main>
+
+      <aside>
+        <section class="panel sticky">
+          <div class="section-head"><div><div class="eyebrow">LIBRARY</div><h3>Recent projects</h3></div></div>
+          <div id="projects" class="project-list"><div class="muted">No projects yet.</div></div>
+        </section>
+      </aside>
+    </div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
