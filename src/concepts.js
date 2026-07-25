@@ -1,3 +1,14 @@
+export const ASPECT_RATIOS = new Set(["9:16", "1:1", "16:9"]);
+export const MIN_SECONDS = 18;
+export const MAX_SECONDS = 60;
+
+/** Every duration in the system funnels through here so storage and storyboarding agree. */
+export function clampSeconds(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds)) return 30;
+  return Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, Math.round(seconds)));
+}
+
 export const DEFAULT_STYLE = [
   "ultra-vibrant premium cinematic 3D animation",
   "stylized realism with believable materials and expressive characters",
@@ -47,18 +58,29 @@ const STYLE_TWISTS = [
   "surreal premium visual surprise"
 ];
 
+// Every custom project shares one character, so each card is headlined by the angle
+// it takes rather than by the subject — otherwise all six cards read identically.
 const STRATEGIES = [
-  { label: "Literal", score: 82, note: "Closest to the brief; safest baseline.", treatment: "clear readable composition, faithful to the requested character and setting" },
-  { label: "Cinematic", score: 94, note: "Best default for premium short-form content.", treatment: "dramatic hero framing, strong depth, controlled rim light and cinematic scale" },
-  { label: "Scenic", score: 89, note: "Best for showing an extravagant world.", treatment: "wide establishing composition with the character clearly readable against a breathtaking environment" },
-  { label: "Action", score: 91, note: "Strong motion potential for video conversion.", treatment: "dynamic pose, directional movement, low tracking-camera energy and strong motion cues" },
-  { label: "Emotional", score: 87, note: "Best for connection, gifts and memorial-style stories.", treatment: "intimate expressive moment, warm light and emotionally resonant storytelling" },
-  { label: "Wildcard", score: 90, note: "Pushes for a standout social hook without losing the brand look.", treatment: "unexpected but coherent premium visual twist, iconic silhouette and immediate scroll-stopping spectacle" }
+  { label: "Literal", headline: "Faithful to the brief", score: 82, note: "Closest to the brief; safest baseline.", treatment: "clear readable composition, faithful to the requested character and setting" },
+  { label: "Cinematic", headline: "Hero framing at cinematic scale", score: 94, note: "Best default for premium short-form content.", treatment: "dramatic hero framing, strong depth, controlled rim light and cinematic scale" },
+  { label: "Scenic", headline: "A vast world, character still readable", score: 89, note: "Best for showing an extravagant world.", treatment: "wide establishing composition with the character clearly readable against a breathtaking environment" },
+  { label: "Action", headline: "Built to move once it becomes video", score: 91, note: "Strong motion potential for video conversion.", treatment: "dynamic pose, directional movement, low tracking-camera energy and strong motion cues" },
+  { label: "Emotional", headline: "An intimate, warmly lit moment", score: 87, note: "Best for connection, gifts and memorial-style stories.", treatment: "intimate expressive moment, warm light and emotionally resonant storytelling" },
+  { label: "Wildcard", headline: "A scroll-stopping visual twist", score: 90, note: "Pushes for a standout social hook without losing the brand look.", treatment: "unexpected but coherent premium visual twist, iconic silhouette and immediate scroll-stopping spectacle" }
 ];
 
 function normalize(value, fallback) {
   return String(value || "").trim() || fallback;
 }
+
+const INSPIRATION_NOTES = [
+  "Broadest appeal; safest pick for a first post in a new series.",
+  "Strongest motion potential when the still is converted to video.",
+  "Best showcase of an extravagant world at full scale.",
+  "Highest emotional pull; strongest for saves and shares.",
+  "Fastest hook; designed to stop the scroll in the first second.",
+  "Most distinctive look; use when the feed needs a pattern break."
+];
 
 export function inspirationIdeas(kind = "dog") {
   const pool = kind === "person" ? PEOPLE : DOGS;
@@ -70,10 +92,13 @@ export function inspirationIdeas(kind = "dog") {
     return {
       id: `inspiration-${kind}-${i + 1}`,
       label: ["Most Marketable", "High Motion", "World Builder", "Emotional", "Social Hook", "Wildcard"][i],
+      // Each inspiration card has its own subject, so the subject is the headline.
+      headline: character.split(/\s+/).slice(0, 6).join(" "),
       character,
       setting,
       mood: ["joyful", "adventurous", "awe-inspiring", "heartwarming", "energetic", "surreal"][i],
       styleTwist,
+      recommendation: INSPIRATION_NOTES[i],
       score: [95, 92, 90, 88, 93, 89][i],
       prompt
     };
@@ -90,6 +115,10 @@ export function strategicVariations({ character, setting, mood, style }) {
   return STRATEGIES.map((strategy, i) => ({
     id: `concept-${i + 1}`,
     label: strategy.label,
+    headline: strategy.headline,
+    character: finalCharacter,
+    setting: finalSetting,
+    mood: finalMood,
     score: strategy.score,
     recommendation: strategy.note,
     prompt: `${base}, ${strategy.treatment}, ${finalStyle}`
@@ -102,7 +131,7 @@ export function recommendConcept(concepts = []) {
 
 export function makeStoryboard(concept, seconds = 30) {
   if (!concept?.prompt) throw new Error("A selected concept with a prompt is required.");
-  const total = Math.max(18, Math.min(60, Number(seconds) || 30));
+  const total = clampSeconds(seconds);
   const durations = Array(6).fill(Number((total / 6).toFixed(1)));
   const difference = Number((total - durations.reduce((a, b) => a + b, 0)).toFixed(1));
   durations[5] = Number((durations[5] + difference).toFixed(1));
@@ -124,6 +153,69 @@ export function makeStoryboard(concept, seconds = 30) {
     duration: durations[index],
     prompt: `${concept.prompt}. Scene ${index + 1} — ${scene.name}: ${scene.beat}. Camera: ${scene.camera}. Preserve exact character identity, proportions, wardrobe/accessories, palette and world continuity. No duplicate subject, no anatomy changes, no random costume changes.`
   }));
+}
+
+export const RENDER_DECISIONS = new Set(["approve", "rework", "reset"]);
+
+/** Every shot starts unapproved and unspent; nothing here contacts a provider. */
+export function createRenders(storyboard = []) {
+  return storyboard.map((scene) => ({
+    scene: scene.scene,
+    status: "awaiting-keyframe",
+    provider: "higgsfield",
+    prompt: scene.prompt,
+    attempts: 0,
+    approved: false,
+    cost: null,
+    jobId: null,
+    output: null
+  }));
+}
+
+/**
+ * Pure state transition for one shot. `rework` is the only path that consumes the
+ * retry budget, and it refuses to increment past the guardrail so a stuck scene
+ * can never spiral into an uncapped paid retry loop.
+ */
+export function applyRenderDecision(render, decision, maxRetriesPerShot = 2) {
+  if (!RENDER_DECISIONS.has(decision)) throw new Error(`Unknown render decision: ${decision}`);
+  const maxRetries = Number.isFinite(Number(maxRetriesPerShot)) ? Math.max(0, Number(maxRetriesPerShot)) : 2;
+  const next = { ...render };
+
+  if (decision === "approve") {
+    next.approved = true;
+    next.status = "approved";
+    return next;
+  }
+
+  if (decision === "reset") {
+    next.approved = false;
+    next.attempts = 0;
+    next.status = "awaiting-keyframe";
+    return next;
+  }
+
+  next.approved = false;
+  if (next.attempts >= maxRetries) {
+    next.status = "blocked-retry-limit";
+    return next;
+  }
+  next.attempts += 1;
+  next.status = next.attempts >= maxRetries ? "blocked-retry-limit" : "needs-rework";
+  return next;
+}
+
+export function renderSummary(renders = []) {
+  const list = Array.isArray(renders) ? renders : [];
+  const approved = list.filter((render) => render?.approved).length;
+  const blocked = list.filter((render) => render?.status === "blocked-retry-limit").length;
+  return {
+    total: list.length,
+    approved,
+    blocked,
+    remaining: list.length - approved,
+    readyForVideo: list.length > 0 && approved === list.length
+  };
 }
 
 export function buildRenderPlan(project) {

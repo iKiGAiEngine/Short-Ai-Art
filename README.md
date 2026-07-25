@@ -14,7 +14,23 @@ Internal production operating system for turning a character + setting into six 
 
 ## Current status
 
-The first build includes the operator workflow, concept engine, storyboard generation, project persistence, provider boundary, and generation guardrails. Live Higgsfield generation is the next integration step after account authentication.
+The operator workflow runs end to end: concepting, selection, storyboard editing, the
+approval-gated render plan, and per-shot keyframe review with a server-enforced retry budget.
+Keyframe references are attached by the operator while live generation is still gated —
+approvals, retries and blocked shots are already tracked, so wiring Higgsfield in later
+replaces how a reference arrives without changing the approval flow around it.
+
+## Keyframe review
+
+Each shot in Step 4 holds a status, a retry count and an approved keyframe reference:
+
+- **Approve** requires a reference (URL or file path) — a shot cannot be approved on a click alone.
+- **Needs rework** consumes one unit of the retry budget. At `MAX_RETRIES_PER_SHOT` the shot
+  becomes `blocked-retry-limit` and stops consuming budget entirely.
+- **Reset** clears the shot back to `awaiting-keyframe` and returns its retry budget.
+
+The budget is enforced server-side, so a stuck scene cannot spiral into an uncapped paid
+retry loop even if the UI is bypassed.
 
 ## Principles
 
@@ -25,10 +41,15 @@ The first build includes the operator workflow, concept engine, storyboard gener
 
 ## Local run
 
-Requires Node 20+.
+Requires Node 20+. No dependencies to install.
 
 ```bash
-npm start
+npm start          # http://localhost:4173
+npm run dev        # same, with reload on change
+npm test           # unit + HTTP integration tests
 ```
 
-Open `http://localhost:4173`.
+Configuration comes from the environment (see `.env.example`): `PORT`,
+`PROJECT_DATA_DIR`, `MAX_PROJECT_CREDITS`, `MAX_RETRIES_PER_SHOT` and `HIGGSFIELD_ENABLED`.
+Projects are stored as one JSON file per project under `PROJECT_DATA_DIR`
+(default `data/projects`), which is git-ignored operator content.

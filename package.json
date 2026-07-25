@@ -1,13 +1,13 @@
 {
   "name": "short-ai-art",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Internal AI short-form art production operating system",
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test \"tests/*.test.js\""
   },
   "engines": {
     "node": ">=20"
